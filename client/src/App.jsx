@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
-import { supabase } from './lib/supabase'
+import { authAPI } from './lib/api'
 import Landing from './pages/Landing'
 import Login from './pages/Login'
 import Signup from './pages/Signup'
@@ -19,14 +19,26 @@ export default function App() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-      setLoading(false)
-    })
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session)
-    })
-    return () => subscription.unsubscribe()
+    const checkAuth = async () => {
+      const token = localStorage.getItem('token')
+      if (!token) {
+        setSession(null)
+        setLoading(false)
+        return
+      }
+      try {
+        const { data } = await authAPI.me()
+        setSession({ user: data.user, access_token: token })
+      } catch (err) {
+        console.error('Session expired or invalid')
+        localStorage.removeItem('token')
+        setSession(null)
+      } finally {
+        setLoading(false)
+      }
+    }
+    
+    checkAuth()
   }, [])
 
   if (loading) {
@@ -40,17 +52,28 @@ export default function App() {
     )
   }
 
+  // Inject setSession globally for easy login/logout without Context API overhead for now
+  const handleSetSession = (newSession) => {
+    if (newSession) {
+      localStorage.setItem('token', newSession.access_token || newSession.session?.access_token)
+      setSession(newSession)
+    } else {
+      localStorage.removeItem('token')
+      setSession(null)
+    }
+  }
+
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Landing session={session} />} />
-        <Route path="/login" element={session ? <Navigate to="/dashboard" /> : <Login />} />
-        <Route path="/signup" element={session ? <Navigate to="/availability" /> : <Signup />} />
+        <Route path="/login" element={session ? <Navigate to="/dashboard" /> : <Login setSession={handleSetSession} />} />
+        <Route path="/signup" element={session ? <Navigate to="/availability" /> : <Signup setSession={handleSetSession} />} />
         <Route
           path="/dashboard"
           element={
             <ProtectedRoute session={session}>
-              <Dashboard session={session} />
+              <Dashboard session={session} setSession={handleSetSession} />
             </ProtectedRoute>
           }
         />
@@ -58,7 +81,7 @@ export default function App() {
           path="/availability"
           element={
             <ProtectedRoute session={session}>
-              <Availability session={session} />
+              <Availability session={session} setSession={handleSetSession} />
             </ProtectedRoute>
           }
         />

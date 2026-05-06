@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import SideNav from '../components/SideNav'
 import { availabilityAPI } from '../lib/api'
-import { supabase } from '../lib/supabase'
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 const DURATIONS = [15, 30, 45, 60]
@@ -16,7 +15,7 @@ const defaultSchedule = DAYS.map((day, i) => ({
   end_time: '17:00',
 }))
 
-export default function Availability({ session }) {
+export default function Availability({ session, setSession }) {
   const navigate = useNavigate()
   const [schedule, setSchedule] = useState(defaultSchedule)
   const [duration, setDuration] = useState(30)
@@ -32,44 +31,39 @@ export default function Availability({ session }) {
 
   useEffect(() => {
     const loadData = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
+      if (session?.user?.slug) {
+        setUserSlug(session.user.slug)
+      }
 
-      const { data: userData } = await supabase
-        .from('users')
-        .select('slug')
-        .eq('id', user.id)
-        .single()
+      try {
+        const { data } = await availabilityAPI.getSettings()
+        const avail = data.availability || []
 
-      if (userData) setUserSlug(userData.slug)
-
-      const { data: avail } = await supabase
-        .from('availability')
-        .select('*')
-        .eq('user_id', user.id)
-
-      if (avail && avail.length > 0) {
-        const merged = defaultSchedule.map(day => {
-          const existing = avail.find(a => a.day_of_week === day.day_of_week)
-          if (existing) {
-            return {
-              ...day,
-              is_active: existing.is_active,
-              start_time: existing.start_time?.slice(0, 5) || '09:00',
-              end_time: existing.end_time?.slice(0, 5) || '17:00',
+        if (avail.length > 0) {
+          const merged = defaultSchedule.map(day => {
+            const existing = avail.find(a => a.day_of_week === day.day_of_week)
+            if (existing) {
+              return {
+                ...day,
+                is_active: existing.is_active,
+                start_time: existing.start_time?.slice(0, 5) || '09:00',
+                end_time: existing.end_time?.slice(0, 5) || '17:00',
+              }
             }
-          }
-          return day
-        })
-        setSchedule(merged)
-        const first = avail[0]
-        setDuration(first.duration_minutes || 30)
-        setBuffer(first.buffer_minutes || 0)
+            return day
+          })
+          setSchedule(merged)
+          const first = avail[0]
+          setDuration(first.duration_minutes || 30)
+          setBuffer(first.buffer_minutes || 0)
+        }
+      } catch (err) {
+        console.error('Failed to load availability settings:', err)
       }
       setLoading(false)
     }
     loadData()
-  }, [])
+  }, [session])
 
   const toggleDay = (i) => {
     setSchedule(s => s.map((d, idx) => idx === i ? { ...d, is_active: !d.is_active } : d))
@@ -126,7 +120,7 @@ export default function Availability({ session }) {
 
   return (
     <div className="min-h-screen bg-surface flex font-sans">
-      <SideNav active="availability" userSlug={userSlug} />
+      <SideNav active="availability" userSlug={userSlug} setSession={setSession} />
 
       <main className="flex-1 ml-0 md:ml-64 p-6 md:p-10 pb-32">
         <div className="max-w-container mx-auto">

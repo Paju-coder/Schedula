@@ -1,5 +1,4 @@
 import { Link, useNavigate } from 'react-router-dom'
-import { supabase } from '../lib/supabase'
 
 const navItems = [
   { id: 'dashboard', label: 'Dashboard', icon: 'dashboard', path: '/dashboard' },
@@ -8,11 +7,11 @@ const navItems = [
   { id: 'settings', label: 'Settings', icon: 'settings', path: '/dashboard' },
 ]
 
-export default function SideNav({ active, userSlug }) {
+export default function SideNav({ active, userSlug, setSession }) {
   const navigate = useNavigate()
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut()
+  const handleSignOut = () => {
+    setSession(null)
     navigate('/')
   }
 

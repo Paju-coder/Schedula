@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { supabase } from '../lib/supabase'
+import { authAPI } from '../lib/api'
 
-export default function Login() {
+export default function Login({ setSession }) {
   const navigate = useNavigate()
   const [form, setForm] = useState({ email: '', password: '' })
   const [loading, setLoading] = useState(false)
@@ -13,16 +13,13 @@ export default function Login() {
     setLoading(true)
     setError('')
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email: form.email,
-      password: form.password,
-    })
-
-    if (error) {
-      setError(error.message)
-      setLoading(false)
-    } else {
+    try {
+      const { data } = await authAPI.login(form)
+      setSession(data)
       navigate('/dashboard')
+    } catch (err) {
+      setError(err.response?.data?.error || 'Invalid email or password.')
+      setLoading(false)
     }
   }
 

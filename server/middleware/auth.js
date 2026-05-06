@@ -1,35 +1,31 @@
-const { createClient } = require('@supabase/supabase-js')
+const jwt = require('jsonwebtoken')
+const User = require('../models/User')
 
-const url = process.env.SUPABASE_URL
-const key = process.env.SUPABASE_ANON_KEY
-
-const supabaseClient =
-  url && key && !url.includes('your-project-id') && !key.includes('REPLACE_WITH')
-    ? createClient(url, key)
-    : null
-
-// Verify JWT from Supabase Auth
 const authMiddleware = async (req, res, next) => {
-  if (!supabaseClient) {
-    // Allow through in mock mode — attach a fake user
-    req.user = { id: 'mock-user-id', email: 'demo@schedula.app' }
-    return next()
+  let token
+
+  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
+    token = req.headers.authorization.split(' ')[1]
   }
 
-  const authHeader = req.headers.authorization
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  if (!token) {
     return res.status(401).json({ error: 'Missing authorization token' })
   }
 
-  const token = authHeader.replace('Bearer ', '')
-  const { data: { user }, error } = await supabaseClient.auth.getUser(token)
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret')
+    const user = await User.findById(decoded.id).select('-password')
+    
+    if (!user) {
+      return res.status(401).json({ error: 'User no longer exists' })
+    }
 
-  if (error || !user) {
+    req.user = user
+    next()
+  } catch (err) {
+    console.error('Auth middleware error:', err)
     return res.status(401).json({ error: 'Invalid or expired token' })
   }
-
-  req.user = user
-  next()
 }
 
 module.exports = authMiddleware

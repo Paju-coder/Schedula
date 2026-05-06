@@ -1,6 +1,14 @@
 const express = require('express')
 const router = express.Router()
-const supabaseAdmin = require('../lib/supabase')
+const jwt = require('jsonwebtoken')
+const User = require('../models/User')
+const authMiddleware = require('../middleware/auth')
+
+const generateToken = (id) => {
+  return jwt.sign({ id }, process.env.JWT_SECRET || 'fallback_secret', {
+    expiresIn: '30d',
+  })
+}
 
 // POST /api/auth/signup
 router.post('/signup', async (req, res) => {
@@ -11,57 +19,29 @@ router.post('/signup', async (req, res) => {
   }
 
   try {
-    // Check slug availability
-    const { data: existing } = await supabaseAdmin
-      .from('users')
-      .select('id')
-      .eq('slug', slug)
-      .single()
-
-    if (existing) {
+    const existingUser = await User.findOne({ $or: [{ email }, { slug }] })
+    
+    if (existingUser) {
+      if (existingUser.email === email) {
+        return res.status(400).json({ error: 'User with this email already exists' })
+      }
       return res.status(400).json({ error: 'This booking link is already taken. Choose another.' })
     }
 
-    // Create auth user
-    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true,
-    })
-
-    if (authError) {
-      return res.status(400).json({ error: authError.message })
-    }
-
-    // Insert user profile
-    const { error: profileError } = await supabaseAdmin.from('users').insert({
-      id: authData.user.id,
+    const user = await User.create({
       name,
       email,
-      phone: phone || null,
+      password,
+      phone,
       slug,
     })
 
-    if (profileError) {
-      // Cleanup: delete auth user if profile fails
-      await supabaseAdmin.auth.admin.deleteUser(authData.user.id)
-      return res.status(400).json({ error: profileError.message })
-    }
-
-    // Sign in and return session
-    const { data: sessionData, error: signInError } = await supabaseAdmin.auth.signInWithPassword({
-      email,
-      password,
-    })
-
-    if (signInError) {
-      return res.status(200).json({ message: 'Account created. Please log in.' })
-    }
+    const token = generateToken(user._id)
 
     return res.status(201).json({
       message: 'Account created successfully',
-      session: sessionData.session,
-      user: { id: authData.user.id, name, email, slug },
+      session: { access_token: token },
+      user: { id: user._id, name: user.name, email: user.email, slug: user.slug },
     })
   } catch (err) {
     console.error('Signup error:', err)
@@ -78,15 +58,30 @@ router.post('/login', async (req, res) => {
   }
 
   try {
-    const { data, error } = await supabaseAdmin.auth.signInWithPassword({ email, password })
+    const user = await User.findOne({ email })
 
-    if (error) {
-      return res.status(401).json({ error: error.message })
+    if (user && (await user.matchPassword(password))) {
+      const token = generateToken(user._id)
+
+      return res.json({
+        session: { access_token: token },
+        user: { id: user._id, name: user.name, email: user.email, slug: user.slug }
+      })
+    } else {
+      return res.status(401).json({ error: 'Invalid email or password' })
     }
-
-    return res.json({ session: data.session, user: data.user })
   } catch (err) {
+    console.error('Login error:', err)
     return res.status(500).json({ error: 'Server error' })
+  }
+})
+
+// GET /api/auth/me
+router.get('/me', authMiddleware, async (req, res) => {
+  try {
+    res.json({ user: { id: req.user._id, name: req.user.name, email: req.user.email, slug: req.user.slug } })
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' })
   }
 })
 

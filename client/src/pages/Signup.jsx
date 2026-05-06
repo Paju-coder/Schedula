@@ -6,7 +6,7 @@ function generateSlug(name) {
   return name.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
 }
 
-export default function Signup() {
+export default function Signup({ setSession }) {
   const navigate = useNavigate()
   const [form, setForm] = useState({ name: '', email: '', password: '', phone: '', slug: '' })
   const [slugEdited, setSlugEdited] = useState(false)
@@ -33,13 +33,14 @@ export default function Signup() {
     setError('')
 
     try {
-      await authAPI.signup({
+      const { data } = await authAPI.signup({
         name: form.name,
         email: form.email,
         password: form.password,
         phone: form.phone,
         slug: form.slug,
       })
+      setSession(data)
       navigate('/availability')
     } catch (err) {
       setError(err.response?.data?.error || 'Something went wrong. Please try again.')

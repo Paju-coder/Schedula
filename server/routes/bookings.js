@@ -1,9 +1,10 @@
 const express = require('express')
 const router = express.Router()
-const supabase = require('../lib/supabase')
 const authMiddleware = require('../middleware/auth')
 const { generateMeetLink } = require('../services/calendar')
 const { sendBookingEmail } = require('../services/mailer')
+const User = require('../models/User')
+const Booking = require('../models/Booking')
 
 // POST /api/bookings — Guest creates a booking
 router.post('/', async (req, res) => {
@@ -14,55 +15,38 @@ router.post('/', async (req, res) => {
   }
 
   try {
-    // Get host
-    const { data: host, error: hostError } = await supabase
-      .from('users')
-      .select('id, name, email')
-      .eq('slug', slug)
-      .single()
-
-    if (hostError || !host) {
+    const host = await User.findOne({ slug }).select('id name email')
+    if (!host) {
       return res.status(404).json({ error: 'Host not found' })
     }
 
-    // Check if slot is still available
-    const { data: existing } = await supabase
-      .from('bookings')
-      .select('id')
-      .eq('host_id', host.id)
-      .eq('slot_date', slot_date)
-      .eq('slot_time', `${slot_time}:00`)
-      .neq('status', 'cancelled')
-      .single()
+    const existing = await Booking.findOne({
+      host_id: host._id,
+      slot_date,
+      slot_time: `${slot_time}:00`,
+      status: { $ne: 'cancelled' }
+    })
 
     if (existing) {
       return res.status(409).json({ error: 'This slot was just booked. Please choose another time.' })
     }
 
-    // Generate Meet link
     const meet_link = generateMeetLink()
 
-    // Save booking
-    const { data: booking, error: bookingError } = await supabase
-      .from('bookings')
-      .insert({
-        host_id: host.id,
-        guest_name,
-        guest_email,
-        guest_phone: guest_phone || null,
-        purpose: purpose || null,
-        slot_date,
-        slot_time: `${slot_time}:00`,
-        meet_link,
-        status: 'confirmed',
-      })
-      .select()
-      .single()
+    const booking = await Booking.create({
+      host_id: host._id,
+      guest_name,
+      guest_email,
+      guest_phone: guest_phone || null,
+      purpose: purpose || null,
+      slot_date,
+      slot_time: `${slot_time}:00`,
+      meet_link,
+      status: 'confirmed',
+    })
 
-    if (bookingError) throw bookingError
-
-    // Send emails in background (don't fail booking if email fails)
-    const emailData = { ...booking, slot_time }
+    // Send emails in background
+    const emailData = { ...booking.toObject(), slot_time }
     Promise.all([
       sendBookingEmail(guest_email, emailData).catch(console.error),
       sendBookingEmail(host.email, { ...emailData, guest_name: `${guest_name} (your guest)` }).catch(console.error),
@@ -71,8 +55,8 @@ router.post('/', async (req, res) => {
     return res.status(201).json({
       message: 'Booking confirmed!',
       booking: {
-        ...booking,
-        slot_time: slot_time, // return clean format
+        ...booking.toObject(),
+        slot_time: slot_time,
       },
     })
   } catch (err) {
@@ -84,16 +68,8 @@ router.post('/', async (req, res) => {
 // GET /api/bookings/admin — Admin gets all their bookings
 router.get('/admin', authMiddleware, async (req, res) => {
   try {
-    const { data: bookings, error } = await supabase
-      .from('bookings')
-      .select('*')
-      .eq('host_id', req.user.id)
-      .order('slot_date', { ascending: true })
-      .order('slot_time', { ascending: true })
-
-    if (error) throw error
-
-    return res.json({ bookings: bookings || [] })
+    const bookings = await Booking.find({ host_id: req.user._id }).sort({ slot_date: 1, slot_time: 1 })
+    return res.json({ bookings })
   } catch (err) {
     console.error('Get bookings error:', err)
     return res.status(500).json({ error: 'Failed to fetch bookings' })
@@ -105,27 +81,18 @@ router.put('/:id/cancel', authMiddleware, async (req, res) => {
   const { id } = req.params
 
   try {
-    // Verify ownership
-    const { data: booking } = await supabase
-      .from('bookings')
-      .select('id, host_id, guest_email, guest_name, slot_date, slot_time')
-      .eq('id', id)
-      .single()
+    const booking = await Booking.findById(id)
 
     if (!booking) {
       return res.status(404).json({ error: 'Booking not found' })
     }
 
-    if (booking.host_id !== req.user.id) {
+    if (booking.host_id.toString() !== req.user._id.toString()) {
       return res.status(403).json({ error: 'You can only cancel your own bookings' })
     }
 
-    const { error } = await supabase
-      .from('bookings')
-      .update({ status: 'cancelled' })
-      .eq('id', id)
-
-    if (error) throw error
+    booking.status = 'cancelled'
+    await booking.save()
 
     return res.json({ message: 'Booking cancelled successfully' })
   } catch (err) {

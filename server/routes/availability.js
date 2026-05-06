@@ -1,8 +1,11 @@
 const express = require('express')
 const router = express.Router()
-const supabase = require('../lib/supabase')
 const authMiddleware = require('../middleware/auth')
 const { generateSlots } = require('../utils/slots')
+const User = require('../models/User')
+const Availability = require('../models/Availability')
+const BlockedDate = require('../models/BlockedDate')
+const Booking = require('../models/Booking')
 
 // GET /api/availability/:slug?date=YYYY-MM-DD
 // Public — guest fetches available slots
@@ -11,64 +14,49 @@ router.get('/:slug', async (req, res) => {
   const { date } = req.query
 
   try {
-    // Get host user
-    const { data: host, error: hostError } = await supabase
-      .from('users')
-      .select('id, name, bio, slug')
-      .eq('slug', slug)
-      .single()
-
-    if (hostError || !host) {
+    const host = await User.findOne({ slug }).select('id name bio slug')
+    if (!host) {
       return res.status(404).json({ error: 'Host not found' })
     }
 
-    // If no date, just return host info
     if (!date) {
       return res.json({ host, slots: [] })
     }
 
     // Check if date is blocked
-    const { data: blocked } = await supabase
-      .from('blocked_dates')
-      .select('id')
-      .eq('user_id', host.id)
-      .eq('blocked_date', date)
-      .single()
-
+    const blocked = await BlockedDate.findOne({ user_id: host._id, blocked_date: date })
     if (blocked) {
       return res.json({ host, slots: [], blocked: true })
     }
 
     // Get availability settings
-    const { data: availability } = await supabase
-      .from('availability')
-      .select('*')
-      .eq('user_id', host.id)
-      .eq('is_active', true)
-
+    const availability = await Availability.find({ user_id: host._id, is_active: true })
     if (!availability || availability.length === 0) {
       return res.json({ host, slots: [] })
     }
 
     // Get existing bookings for this date
-    const { data: existingBookings } = await supabase
-      .from('bookings')
-      .select('slot_date, slot_time, status')
-      .eq('host_id', host.id)
-      .eq('slot_date', date)
-      .neq('status', 'cancelled')
+    const existingBookings = await Booking.find({
+      host_id: host._id,
+      slot_date: date,
+      status: { $ne: 'cancelled' }
+    }).select('slot_date slot_time status')
 
-    const slots = generateSlots(availability, existingBookings || [], date)
+    // Generate slots
+    const slots = generateSlots(availability, existingBookings, date)
 
-    // Pass duration info for display
+    // Pass duration info
     const dateObj = new Date(date + 'T00:00:00')
     const dayOfWeek = dateObj.getDay()
     const dayAvail = availability.find(a => a.day_of_week === dayOfWeek)
 
     return res.json({
       host: {
-        ...host,
-        duration_minutes: dayAvail?.duration_minutes || 30,
+        id: host._id,
+        name: host.name,
+        bio: host.bio,
+        slug: host.slug,
+        duration_minutes: dayAvail ? dayAvail.duration_minutes : 30,
       },
       slots,
     })
@@ -81,13 +69,8 @@ router.get('/:slug', async (req, res) => {
 // GET /api/availability/settings — Admin gets their settings
 router.get('/settings', authMiddleware, async (req, res) => {
   try {
-    const { data } = await supabase
-      .from('availability')
-      .select('*')
-      .eq('user_id', req.user.id)
-      .order('day_of_week')
-
-    res.json({ availability: data || [] })
+    const availability = await Availability.find({ user_id: req.user._id }).sort({ day_of_week: 1 })
+    res.json({ availability })
   } catch (err) {
     res.status(500).json({ error: 'Server error' })
   }
@@ -102,23 +85,21 @@ router.post('/', authMiddleware, async (req, res) => {
   }
 
   try {
-    // Upsert all days
-    const rows = schedule.map(day => ({
-      user_id: req.user.id,
-      day_of_week: day.day_of_week,
-      start_time: day.is_active ? `${day.start_time}:00` : '09:00:00',
-      end_time: day.is_active ? `${day.end_time}:00` : '17:00:00',
-      duration_minutes: duration_minutes || 30,
-      buffer_minutes: buffer_minutes || 0,
-      is_active: day.is_active,
-    }))
+    const promises = schedule.map(day => {
+      return Availability.findOneAndUpdate(
+        { user_id: req.user._id, day_of_week: day.day_of_week },
+        {
+          start_time: day.is_active ? `${day.start_time}:00` : '09:00:00',
+          end_time: day.is_active ? `${day.end_time}:00` : '17:00:00',
+          duration_minutes: duration_minutes || 30,
+          buffer_minutes: buffer_minutes || 0,
+          is_active: day.is_active,
+        },
+        { upsert: true, new: true }
+      )
+    })
 
-    const { error } = await supabase
-      .from('availability')
-      .upsert(rows, { onConflict: 'user_id,day_of_week' })
-
-    if (error) throw error
-
+    await Promise.all(promises)
     return res.json({ message: 'Availability saved successfully' })
   } catch (err) {
     console.error('Save availability error:', err)
@@ -135,16 +116,11 @@ router.post('/block', authMiddleware, async (req, res) => {
   }
 
   try {
-    const { error } = await supabase
-      .from('blocked_dates')
-      .insert({
-        user_id: req.user.id,
-        blocked_date: date,
-        reason: reason || null,
-      })
-
-    if (error) throw error
-
+    await BlockedDate.create({
+      user_id: req.user._id,
+      blocked_date: date,
+      reason: reason || null,
+    })
     return res.json({ message: `Date ${date} blocked successfully` })
   } catch (err) {
     console.error('Block date error:', err)

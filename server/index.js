@@ -1,6 +1,10 @@
 require('dotenv').config()
 const express = require('express')
 const cors = require('cors')
+const connectDB = require('./lib/db')
+
+// Connect to MongoDB
+// connectDB() // Temporarily disabled since we are using frontend localStorage mock
 
 const authRoutes = require('./routes/auth')
 const availabilityRoutes = require('./routes/availability')

@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { format } from 'date-fns'
 import SideNav from '../components/SideNav'
 import { bookingsAPI } from '../lib/api'
-import { supabase } from '../lib/supabase'
 import ChatBot from '../components/ChatBot'
 
 function getTimeOfDay() {
@@ -18,31 +17,18 @@ function initials(name) {
 
 const avatarColors = ['bg-accent-mint', 'bg-accent-lavender', 'bg-accent-peach', 'bg-secondary-fixed']
 
-export default function Dashboard({ session }) {
+export default function Dashboard({ session, setSession }) {
   const [bookings, setBookings] = useState([])
   const [loading, setLoading] = useState(true)
-  const [userName, setUserName] = useState('')
-  const [userSlug, setUserSlug] = useState('')
   const [cancellingId, setCancellingId] = useState(null)
   const [copied, setCopied] = useState(false)
   const [error, setError] = useState('')
 
+  const userName = session?.user?.name || ''
+  const userSlug = session?.user?.slug || ''
+
   useEffect(() => {
     const loadData = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-
-      const { data: userData } = await supabase
-        .from('users')
-        .select('name, slug')
-        .eq('id', user.id)
-        .single()
-
-      if (userData) {
-        setUserName(userData.name)
-        setUserSlug(userData.slug)
-      }
-
       await fetchBookings()
       setLoading(false)
     }
@@ -110,7 +96,7 @@ export default function Dashboard({ session }) {
 
   return (
     <div className="min-h-screen bg-surface flex font-sans">
-      <SideNav active="dashboard" userSlug={userSlug} />
+      <SideNav active="dashboard" userSlug={userSlug} setSession={setSession} />
 
       <main className="flex-1 ml-0 md:ml-64 p-6 md:p-12">
         {/* Header */}
