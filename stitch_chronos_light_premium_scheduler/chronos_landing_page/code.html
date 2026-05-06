@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chronos | Your time, your rules.</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;family=Space+Grotesk:wght@500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "accent-peach": "#FFF3E0",
+                        "on-background": "#1b1b1b",
+                        "primary": "#000000",
+                        "bg-secondary": "#F7F7F7",
+                        "on-secondary": "#ffffff",
+                        "on-primary-fixed-variant": "#474747",
+                        "primary-container": "#1b1b1b",
+                        "on-error": "#ffffff",
+                        "on-secondary-fixed": "#380c00",
+                        "bg-primary": "#FFFFFF",
+                        "on-surface-variant": "#4c4546",
+                        "surface-variant": "#e2e2e2",
+                        "accent-lavender": "#E8EAF6",
+                        "on-tertiary": "#ffffff",
+                        "surface": "#f9f9f9",
+                        "on-primary": "#ffffff",
+                        "accent-mint": "#E8F5E9",
+                        "on-secondary-fixed-variant": "#822800",
+                        "inverse-on-surface": "#f1f1f1",
+                        "primary-fixed": "#e2e2e2",
+                        "tertiary-container": "#1b1b1b",
+                        "on-tertiary-container": "#848484",
+                        "tertiary-fixed-dim": "#c6c6c6",
+                        "secondary": "#a43c12",
+                        "error": "#ba1a1a",
+                        "on-primary-container": "#848484",
+                        "secondary-fixed-dim": "#ffb59c",
+                        "inverse-primary": "#c6c6c6",
+                        "error-container": "#ffdad6",
+                        "primary-fixed-dim": "#c6c6c6",
+                        "tertiary-fixed": "#e2e2e2",
+                        "surface-container-highest": "#e2e2e2",
+                        "surface-container": "#eeeeee",
+                        "secondary-container": "#fe7e4f",
+                        "on-error-container": "#93000a",
+                        "outline": "#7e7576",
+                        "surface-bright": "#f9f9f9",
+                        "text-primary": "#1A1A1A",
+                        "tertiary": "#000000",
+                        "surface-dim": "#dadada",
+                        "surface-container-lowest": "#ffffff",
+                        "on-tertiary-fixed-variant": "#474747",
+                        "text-muted": "#666666",
+                        "on-secondary-container": "#6b1f00",
+                        "on-primary-fixed": "#1b1b1b",
+                        "surface-container-low": "#f3f3f3",
+                        "on-surface": "#1b1b1b",
+                        "inverse-surface": "#303030",
+                        "background": "#ffffff",
+                        "secondary-fixed": "#ffdbcf",
+                        "on-tertiary-fixed": "#1b1b1b",
+                        "surface-tint": "#5e5e5e",
+                        "surface-container-high": "#e8e8e8",
+                        "outline-variant": "#cfc4c5"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "card-padding": "24px",
+                        "gutter": "24px",
+                        "section-padding": "80px",
+                        "container-max": "1200px",
+                        "unit": "8px"
+                    },
+                    "fontFamily": {
+                        "body-lg": ["Inter"],
+                        "h3": ["Inter"],
+                        "label-sm": ["Inter"],
+                        "body-md": ["Inter"],
+                        "h1": ["Inter"],
+                        "data-ui": ["Space Grotesk"],
+                        "h2": ["Inter"],
+                        "display-xl": ["Inter"]
+                    },
+                    "fontSize": {
+                        "body-lg": ["18px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                        "h3": ["24px", {"lineHeight": "1.3", "letterSpacing": "-0.01em", "fontWeight": "700"}],
+                        "label-sm": ["12px", {"lineHeight": "1", "fontWeight": "600"}],
+                        "body-md": ["16px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                        "h1": ["48px", {"lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "800"}],
+                        "display-xl": ["72px", {"lineHeight": "1.1", "letterSpacing": "-0.03em", "fontWeight": "800"}],
+                        "data-ui": ["14px", {"lineHeight": "1.4", "letterSpacing": "0.02em", "fontWeight": "500"}],
+                        "h2": ["32px", {"lineHeight": "1.2", "letterSpacing": "-0.01em", "fontWeight": "700"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .grain-texture {
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+            opacity: 0.02;
+        }
+        .minimal-card {
+            background: #ffffff;
+            border: 1px solid #eeeeee;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .minimal-card:hover {
+            border-color: #000000;
+            transform: translateY(-4px);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md selection:bg-primary-container selection:text-on-primary-container">
+<!-- TopAppBar -->
+<header class="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-gutter py-4 max-w-container-max mx-auto bg-white/80 backdrop-blur-md border-b border-outline-variant/30">
+<div class="flex items-center gap-2">
+<span class="font-h2 text-h2 font-black tracking-tight text-primary">Chronos</span>
+</div>
+<nav class="hidden md:flex items-center gap-8">
+<a class="font-body-md text-body-md text-primary font-semibold border-b-2 border-primary pb-1" href="#">Features</a>
+<a class="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors" href="#">Solutions</a>
+<a class="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors" href="#">Pricing</a>
+</nav>
+<div class="flex items-center gap-6">
+<button class="hidden md:block text-on-surface-variant font-label-sm hover:text-primary transition-colors">Login</button>
+<button class="bg-primary text-on-primary px-6 py-2 rounded-full font-label-sm transition-all active:scale-95">Get Your Link Free</button>
+</div>
+</header>
+<main class="relative pt-24">
+<!-- Grain Texture Overlay -->
+<div class="absolute inset-0 grain-texture pointer-events-none"></div>
+<!-- Hero Section -->
+<section class="relative min-h-[85vh] flex flex-col items-center justify-center text-center px-gutter overflow-hidden">
+<!-- Hero Content -->
+<div class="relative z-10 max-w-4xl mx-auto">
+<h1 class="font-display-xl text-display-xl md:text-[80px] text-on-background mb-8 leading-[1.05] tracking-tighter">
+                Your time, <span class="text-secondary italic">your rules.</span>
+</h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant max-w-2xl mx-auto mb-10">
+                One link. Zero back-and-forth. Meetings that book themselves. Engineered for the precision of your professional life.
+            </p>
+<div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
+<button class="w-full sm:w-auto bg-primary text-on-primary px-10 py-4 rounded-full font-label-sm text-lg transition-all active:scale-95 shadow-xl hover:shadow-2xl">
+                    Get Your Link Free
+                </button>
+<button class="w-full sm:w-auto border border-outline-variant text-primary px-10 py-4 rounded-full font-label-sm text-lg hover:bg-surface-container-low transition-all active:scale-95">
+                    See How It Works
+                </button>
+</div>
+</div>
+<!-- Social Proof Strip -->
+<div class="mt-20 pt-12 border-t border-outline-variant/20 w-full max-w-container-max">
+<p class="font-label-sm text-on-surface-variant opacity-60 mb-8 uppercase tracking-widest text-[10px]">Trusted by 500+ Indian professionals</p>
+<div class="flex flex-wrap justify-center gap-12 grayscale opacity-40">
+<div class="font-h3 text-h3 font-black tracking-tighter px-4">TATA</div>
+<div class="font-h3 text-h3 font-black tracking-tighter px-4">RELIANCE</div>
+<div class="font-h3 text-h3 font-black tracking-tighter px-4">INFOSYS</div>
+<div class="font-h3 text-h3 font-black tracking-tighter px-4">ZOMATO</div>
+</div>
+</div>
+</section>
+<!-- Features Section -->
+<section class="py-24 px-gutter max-w-container-max mx-auto bg-surface-container-lowest">
+<div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+<!-- Feature Card 1 -->
+<div class="minimal-card p-10 rounded-xl">
+<div class="w-12 h-12 flex items-center justify-center bg-accent-mint rounded-lg text-primary mb-8">
+<span class="material-symbols-outlined" data-icon="auto_awesome">auto_awesome</span>
+</div>
+<h3 class="font-h3 text-h3 mb-4 tracking-tight">Smart Buffer Logic</h3>
+<p class="font-body-md text-on-surface-variant leading-relaxed">
+                    Automatically adds breathing room between meetings so you never feel rushed.
+                </p>
+</div>
+<!-- Feature Card 2 -->
+<div class="minimal-card p-10 rounded-xl">
+<div class="w-12 h-12 flex items-center justify-center bg-accent-lavender rounded-lg text-primary mb-8">
+<span class="material-symbols-outlined" data-icon="language">language</span>
+</div>
+<h3 class="font-h3 text-h3 mb-4 tracking-tight">Global Sync</h3>
+<p class="font-body-md text-on-surface-variant leading-relaxed">
+                    Instant timezone detection for clients in Bengaluru, London, or New York.
+                </p>
+</div>
+<!-- Feature Card 3 -->
+<div class="minimal-card p-10 rounded-xl">
+<div class="w-12 h-12 flex items-center justify-center bg-accent-peach rounded-lg text-primary mb-8">
+<span class="material-symbols-outlined" data-icon="lock">lock</span>
+</div>
+<h3 class="font-h3 text-h3 mb-4 tracking-tight">Privacy First</h3>
+<p class="font-body-md text-on-surface-variant leading-relaxed">
+                    Only share your availability. Your private calendar details stay truly private.
+                </p>
+</div>
+</div>
+</section>
+<!-- Bento Grid Section -->
+<section class="py-24 px-gutter max-w-container-max mx-auto">
+<div class="grid grid-cols-1 md:grid-cols-12 gap-8 h-auto">
+<div class="md:col-span-8 minimal-card rounded-2xl overflow-hidden relative group p-10 flex flex-col md:flex-row items-center gap-8">
+<div class="relative z-10 w-full md:w-1/2">
+<span class="bg-surface-container-high text-on-surface-variant px-3 py-1 rounded-full text-[10px] font-label-sm mb-6 inline-block uppercase tracking-wider">The Dashboard</span>
+<h2 class="font-h2 text-h2 mb-4 tracking-tight">A command center for your day.</h2>
+<p class="font-body-md text-on-surface-variant">See all your upcoming slots, client notes, and analytics in one fluid interface.</p>
+</div>
+<div class="w-full md:w-1/2 overflow-hidden rounded-xl border border-outline-variant/30">
+<img class="w-full transition-transform group-hover:scale-105 duration-700" data-alt="A high-fidelity minimalist software dashboard showing scheduling analytics and calendar events." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD-MPDNEOYNBbAAH4hzIvhzYvpqdF2uJnPNYXjVi0tKlrelE1rrkBt2Q9ZPm52PQ_lzHVphphuEYqA9IDihJ41lDcmm9V5SSbUp9WQYJTaSHF17-tadpVufRowR8STG8SFIdNnOppZ9nDm2sRZ1mWqXlDrvosb0sUm3V7l7qbPXy1rL986dS7-1Qt0QhX3KWCrSGBKjzANJDicVs9js1zLC_trdK7JmZdeCdGp8QmMpZ9F8T0EuSEL5v2OD4xO7nghN_UEqCVvthew"/>
+</div>
+</div>
+<div class="md:col-span-4 bg-primary text-on-primary rounded-2xl p-10 flex flex-col justify-between hover:shadow-2xl transition-shadow">
+<div>
+<span class="bg-white/10 text-white/80 px-3 py-1 rounded-full text-[10px] font-label-sm mb-6 inline-block uppercase tracking-wider">VIP Access</span>
+<h2 class="font-h2 text-h2 tracking-tight">High-Priority Pips</h2>
+</div>
+<p class="font-body-md opacity-80 mt-4">Designate specific windows for your most important clients with our signature gold pips.</p>
+<div class="flex gap-3 mt-10">
+<div class="w-8 h-8 rounded-full bg-secondary shadow-lg"></div>
+<div class="w-8 h-8 rounded-full border border-white/20"></div>
+<div class="w-8 h-8 rounded-full border border-white/20"></div>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="w-full py-20 px-gutter flex flex-col md:flex-row justify-between items-center gap-8 bg-surface-container-low border-t border-outline-variant/20">
+<div class="flex flex-col items-center md:items-start gap-2">
+<span class="font-h3 text-h3 font-black tracking-tighter text-primary">Chronos</span>
+<p class="font-body-md text-body-md text-on-surface-variant opacity-70">© 2024 Chronos. Precision in Every Second.</p>
+</div>
+<div class="flex gap-10">
+<a class="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors underline decoration-primary/20 underline-offset-4" href="#">Privacy</a>
+<a class="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors" href="#">Terms</a>
+<a class="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors" href="#">Support</a>
+<a class="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors" href="#">Careers</a>
+</div>
+</footer>
+<!-- BottomNavBar (Mobile only) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center py-4 bg-white/90 backdrop-blur-lg border-t border-outline-variant/30 shadow-2xl rounded-t-2xl">
+<a class="flex flex-col items-center text-primary font-bold active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="home">home</span>
+<span class="font-label-sm text-[10px]">Home</span>
+</a>
+<a class="flex flex-col items-center text-on-surface-variant active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="list_alt">list_alt</span>
+<span class="font-label-sm text-[10px]">Events</span>
+</a>
+<a class="flex flex-col items-center text-on-surface-variant active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="calendar_today">calendar_today</span>
+<span class="font-label-sm text-[10px]">Calendar</span>
+</a>
+<a class="flex flex-col items-center text-on-surface-variant active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="person">person</span>
+<span class="font-label-sm text-[10px]">Profile</span>
+</a>
+</nav>
+<!-- Floating Chatbot Button -->
+<button class="fixed bottom-gutter right-gutter z-50 w-14 h-14 bg-primary text-on-primary rounded-full flex items-center justify-center shadow-2xl hover:scale-110 active:scale-90 transition-all group">
+<span class="material-symbols-outlined text-2xl" data-icon="chat_bubble">chat_bubble</span>
+<span class="absolute right-full mr-4 px-3 py-1 bg-white text-primary border border-outline-variant/30 text-[10px] font-label-sm rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-xl">TALK TO US</span>
+</button>
+</body></html>
