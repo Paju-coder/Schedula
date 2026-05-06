@@ -3,8 +3,8 @@ import { Link, useNavigate } from 'react-router-dom'
 const navItems = [
   { id: 'dashboard', label: 'Dashboard', icon: 'dashboard', path: '/dashboard' },
   { id: 'availability', label: 'Availability', icon: 'schedule', path: '/availability' },
-  { id: 'bookings', label: 'Bookings', icon: 'event_available', path: '/dashboard' },
-  { id: 'settings', label: 'Settings', icon: 'settings', path: '/dashboard' },
+  { id: 'bookings', label: 'Bookings', icon: 'event_available', path: '/bookings' },
+  { id: 'settings', label: 'Settings', icon: 'settings', path: '/settings' },
 ]
 
 export default function SideNav({ active, userSlug, setSession }) {

@@ -16,11 +16,11 @@ router.post('/', async (req, res) => {
     .map(m => ({ role: m.role, content: m.content }))
 
   try {
-    const reply = await chat(validMessages, mode || 'guest', context || {})
-    return res.json({ reply })
+    const result = await chat(validMessages, mode || 'guest', context || {})
+    // result is now { reply, action }
+    return res.json({ reply: result.reply, action: result.action })
   } catch (err) {
     console.error('Groq chat error:', err)
-    // Fallback reply if Groq fails (no API key configured yet)
     const fallbackReplies = {
       guest: "I'm here to help you book a meeting! Please pick a date from the calendar. 📅",
       admin: "I'm your Schedula assistant. Check your dashboard for today's bookings! 📊",

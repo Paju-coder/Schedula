@@ -3,6 +3,7 @@ const router = express.Router()
 const authMiddleware = require('../middleware/auth')
 const { generateMeetLink } = require('../services/calendar')
 const { sendBookingEmail } = require('../services/mailer')
+const { sendWhatsAppNotification } = require('../services/whatsapp')
 const User = require('../models/User')
 const Booking = require('../models/Booking')
 
@@ -45,11 +46,12 @@ router.post('/', async (req, res) => {
       status: 'confirmed',
     })
 
-    // Send emails in background
-    const emailData = { ...booking.toObject(), slot_time }
+    // Send notifications in background
+    const notificationData = { ...booking.toObject(), slot_time }
     Promise.all([
-      sendBookingEmail(guest_email, emailData).catch(console.error),
-      sendBookingEmail(host.email, { ...emailData, guest_name: `${guest_name} (your guest)` }).catch(console.error),
+      sendBookingEmail(guest_email, notificationData).catch(console.error),
+      sendBookingEmail(host.email, { ...notificationData, guest_name: `${guest_name} (your guest)` }).catch(console.error),
+      sendWhatsAppNotification(guest_phone, notificationData).catch(console.error),
     ])
 
     return res.status(201).json({

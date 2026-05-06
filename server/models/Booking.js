@@ -9,7 +9,8 @@ const bookingSchema = new mongoose.Schema({
   slot_date: { type: Date, required: true },
   slot_time: { type: String, required: true },
   meet_link: { type: String },
-  status: { type: String, enum: ['confirmed', 'cancelled', 'rescheduled', 'completed'], default: 'confirmed' }
+  status: { type: String, enum: ['confirmed', 'cancelled', 'rescheduled', 'completed'], default: 'confirmed' },
+  reminder_sent: { type: Boolean, default: false }
 }, { timestamps: true })
 
 module.exports = mongoose.model('Booking', bookingSchema)

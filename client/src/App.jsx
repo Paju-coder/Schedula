@@ -7,6 +7,9 @@ import Signup from './pages/Signup'
 import Dashboard from './pages/Dashboard'
 import Availability from './pages/Availability'
 import BookingPage from './pages/BookingPage'
+import EventSetup from './pages/EventSetup'
+import Bookings from './pages/Bookings'
+import Settings from './pages/Settings'
 import './index.css'
 
 function ProtectedRoute({ children, session }) {
@@ -82,6 +85,30 @@ export default function App() {
           element={
             <ProtectedRoute session={session}>
               <Availability session={session} setSession={handleSetSession} />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/setup"
+          element={
+            <ProtectedRoute session={session}>
+              <EventSetup session={session} />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/bookings"
+          element={
+            <ProtectedRoute session={session}>
+              <Bookings session={session} setSession={handleSetSession} />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute session={session}>
+              <Settings session={session} setSession={handleSetSession} />
             </ProtectedRoute>
           }
         />

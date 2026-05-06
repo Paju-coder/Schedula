@@ -51,6 +51,90 @@ export default function ChatBot({ mode = 'guest', context = {} }) {
     if (open) inputRef.current?.focus()
   }, [open])
 
+  const executeAction = async (action) => {
+    if (!action) return
+
+    try {
+      if (action.type === 'save_schedule') {
+        const { name, days, start, end, duration, buffer } = action.data
+        const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+        const schedule = DAYS.map((dayName, i) => ({
+          day_of_week: i,
+          day_name: dayName,
+          is_active: days.includes(i),
+          start_time: start || '09:00',
+          end_time: end || '17:00',
+        }))
+
+        // Save the availability
+        const { availabilityAPI } = await import('../lib/api')
+        await availabilityAPI.save({
+          schedule,
+          duration_minutes: duration || 30,
+          buffer_minutes: buffer || 0,
+        })
+
+        // Save as an event type on the Dashboard
+        const activeDays = days.sort()
+        const dayNames = activeDays.map(d => DAYS[d])
+        let dayLabel = ''
+        if (activeDays.length === 5 && activeDays.join(',') === '1,2,3,4,5') {
+          dayLabel = 'Weekdays'
+        } else if (activeDays.length === 7) {
+          dayLabel = 'Every day'
+        } else {
+          dayLabel = dayNames.join(', ')
+        }
+
+        // Convert 24h to 12h for display
+        const to12h = (t) => {
+          const [h, m] = t.split(':').map(Number)
+          const ampm = h >= 12 ? 'pm' : 'am'
+          const hour = h % 12 || 12
+          return `${hour}${m > 0 ? ':' + String(m).padStart(2, '0') : ''} ${ampm}`
+        }
+
+        const eventType = {
+          id: Date.now().toString(),
+          name: name || `${duration || 30} Minute Meeting`,
+          duration: duration || 30,
+          location: 'Google Meet',
+          type: 'One-on-One',
+          schedule: `${dayLabel}, ${to12h(start || '09:00')} - ${to12h(end || '17:00')}`,
+          color: ['#8b5cf6', '#006bff', '#ec4899', '#f59e0b', '#10b981'][Math.floor(Math.random() * 5)],
+          createdAt: new Date().toISOString(),
+        }
+
+        const existing = JSON.parse(localStorage.getItem('schedula_event_types') || '[]')
+        existing.push(eventType)
+        localStorage.setItem('schedula_event_types', JSON.stringify(existing))
+
+        setMessages(prev => [...prev, {
+          role: 'assistant',
+          content: `✅ Saved! "${eventType.name}" has been created and added to your Dashboard. Go check it out!`,
+          time: Date.now()
+        }])
+      } else if (action.type === 'block_date') {
+        const { date, reason } = action.data
+        const { availabilityAPI } = await import('../lib/api')
+        await availabilityAPI.blockDate({ date, reason: reason || '' })
+
+        setMessages(prev => [...prev, {
+          role: 'assistant',
+          content: `✅ Done! ${date} has been blocked on your calendar.`,
+          time: Date.now()
+        }])
+      }
+    } catch (err) {
+      console.error('Action execution failed:', err)
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        content: 'Hmm, something went wrong while executing that. Please try doing it manually from the Availability page.',
+        time: Date.now()
+      }])
+    }
+  }
+
   const sendMessage = async () => {
     const text = input.trim()
     if (!text || typing) return
@@ -65,6 +149,11 @@ export default function ChatBot({ mode = 'guest', context = {} }) {
       const res = await chatAPI.send(history, mode, context)
       const reply = res.data.reply || 'Sorry, I had trouble with that. Please try again!'
       setMessages(prev => [...prev, { role: 'assistant', content: reply, time: Date.now() }])
+
+      // Execute any action the AI returned
+      if (res.data.action) {
+        await executeAction(res.data.action)
+      }
     } catch {
       setMessages(prev => [...prev, {
         role: 'assistant',

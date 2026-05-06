@@ -104,7 +104,11 @@ export default function Availability({ session, setSession }) {
     setBlocking(false)
   }
 
-  const bookingLink = `${window.location.origin}/${userSlug}`
+  let origin = window.location.origin
+  if (origin.includes('localhost')) {
+    origin = origin.replace('localhost', '10.85.163.205')
+  }
+  const bookingLink = `${origin}/${userSlug}`
 
   const copyLink = () => {
     navigator.clipboard.writeText(bookingLink)
@@ -307,7 +311,7 @@ export default function Availability({ session, setSession }) {
                 className={`w-full py-5 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 transition-all active:scale-95 shadow-lg ${
                   saved
                     ? 'bg-green-600 text-white'
-                    : 'bg-secondary text-white hover:opacity-90'
+                    : 'bg-[#006bff] text-white hover:bg-[#005be6]'
                 } disabled:opacity-50`}
               >
                 {saving ? (
