@@ -1,5 +1,5 @@
 require('dotenv').config();
-const { sendWhatsAppNotification } = require('./services/whatsapp');
+const { sendWhatsAppNotification } = require('./services/twilio');
 
 const testPhone = process.argv[2];
 

@@ -3,13 +3,13 @@ const router = express.Router()
 const authMiddleware = require('../middleware/auth')
 const { generateMeetLink } = require('../services/calendar')
 const { sendBookingEmail } = require('../services/mailer')
-const { sendWhatsAppNotification } = require('../services/whatsapp')
+const { sendWhatsAppNotification } = require('../services/twilio')
 const User = require('../models/User')
 const Booking = require('../models/Booking')
 
 // POST /api/bookings — Guest creates a booking
 router.post('/', async (req, res) => {
-  const { slug, guest_name, guest_email, guest_phone, purpose, slot_date, slot_time } = req.body
+  const { slug, guest_name, guest_email, guest_phone, purpose, slot_date, slot_time, meeting_type } = req.body
 
   if (!slug || !guest_name || !guest_email || !slot_date || !slot_time) {
     return res.status(400).json({ error: 'Missing required booking fields' })
@@ -43,6 +43,7 @@ router.post('/', async (req, res) => {
       slot_date,
       slot_time: `${slot_time}:00`,
       meet_link,
+      meeting_type: meeting_type || 'Google Meet',
       status: 'confirmed',
     })
 
@@ -100,6 +101,30 @@ router.put('/:id/cancel', authMiddleware, async (req, res) => {
   } catch (err) {
     console.error('Cancel error:', err)
     return res.status(500).json({ error: 'Failed to cancel booking' })
+  }
+})
+
+// DELETE /api/bookings/:id — Permanently delete a booking
+router.delete('/:id', authMiddleware, async (req, res) => {
+  const { id } = req.params
+
+  try {
+    const booking = await Booking.findById(id)
+
+    if (!booking) {
+      return res.status(404).json({ error: 'Booking not found' })
+    }
+
+    if (booking.host_id.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ error: 'You can only delete your own bookings' })
+    }
+
+    await Booking.findByIdAndDelete(id)
+
+    return res.json({ message: 'Booking deleted permanently' })
+  } catch (err) {
+    console.error('Delete error:', err)
+    return res.status(500).json({ error: 'Failed to delete booking' })
   }
 })
 

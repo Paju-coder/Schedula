@@ -20,7 +20,16 @@ router.post('/', async (req, res) => {
     // result is now { reply, action }
     return res.json({ reply: result.reply, action: result.action })
   } catch (err) {
-    console.error('Groq chat error:', err)
+    console.error('Groq chat error details:', err.message || err)
+    
+    // Provide a more descriptive fallback if the API key is missing
+    if (err.message && err.message.includes('API_KEY')) {
+      return res.json({ 
+        reply: "AI connection failed: GROQ_API_KEY is missing in the server's .env file. Please add it to enable the chatbot! 🔑",
+        error: "API_KEY_MISSING"
+      })
+    }
+
     const fallbackReplies = {
       guest: "I'm here to help you book a meeting! Please pick a date from the calendar. 📅",
       admin: "I'm your Schedula assistant. Check your dashboard for today's bookings! 📊",

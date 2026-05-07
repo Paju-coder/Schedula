@@ -1,6 +1,6 @@
 const express = require('express')
 const router = express.Router()
-const { sendWhatsAppNotification } = require('../services/whatsapp')
+const { sendWhatsAppNotification } = require('../services/twilio')
 const { sendBookingEmail } = require('../services/mailer')
 
 // POST /api/notifications/whatsapp

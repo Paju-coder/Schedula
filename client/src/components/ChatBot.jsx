@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { chatAPI } from '../lib/api'
+import { chatAPI, availabilityAPI } from '../lib/api'
 
 function ChatMessage({ msg }) {
   const isUser = msg.role === 'user'
@@ -58,6 +58,8 @@ export default function ChatBot({ mode = 'guest', context = {} }) {
       if (action.type === 'save_schedule') {
         const { name, days, start, end, duration, buffer } = action.data
         const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+        
+        // Prepare schedule for API
         const schedule = DAYS.map((dayName, i) => ({
           day_of_week: i,
           day_name: dayName,
@@ -66,37 +68,32 @@ export default function ChatBot({ mode = 'guest', context = {} }) {
           end_time: end || '17:00',
         }))
 
-        // Save the availability
-        const { availabilityAPI } = await import('../lib/api')
+        // Save availability to database
         await availabilityAPI.save({
           schedule,
           duration_minutes: duration || 30,
           buffer_minutes: buffer || 0,
         })
 
-        // Save as an event type on the Dashboard
-        const activeDays = days.sort()
+        // Create display labels
+        const activeDays = [...days].sort((a, b) => a - b)
         const dayNames = activeDays.map(d => DAYS[d])
-        let dayLabel = ''
-        if (activeDays.length === 5 && activeDays.join(',') === '1,2,3,4,5') {
-          dayLabel = 'Weekdays'
-        } else if (activeDays.length === 7) {
-          dayLabel = 'Every day'
-        } else {
-          dayLabel = dayNames.join(', ')
-        }
+        let dayLabel = dayNames.join(', ')
+        if (activeDays.length === 5 && activeDays.every((d, i) => d === i + 1)) dayLabel = 'Weekdays'
+        if (activeDays.length === 7) dayLabel = 'Every day'
 
-        // Convert 24h to 12h for display
         const to12h = (t) => {
+          if (!t) return ''
           const [h, m] = t.split(':').map(Number)
           const ampm = h >= 12 ? 'pm' : 'am'
           const hour = h % 12 || 12
           return `${hour}${m > 0 ? ':' + String(m).padStart(2, '0') : ''} ${ampm}`
         }
 
+        const eventTypeName = name || `${duration || 30} Minute Meeting`
         const eventType = {
           id: Date.now().toString(),
-          name: name || `${duration || 30} Minute Meeting`,
+          name: eventTypeName,
           duration: duration || 30,
           location: 'Google Meet',
           type: 'One-on-One',
@@ -105,18 +102,20 @@ export default function ChatBot({ mode = 'guest', context = {} }) {
           createdAt: new Date().toISOString(),
         }
 
+        // Save to local storage for Dashboard display
         const existing = JSON.parse(localStorage.getItem('schedula_event_types') || '[]')
         existing.push(eventType)
         localStorage.setItem('schedula_event_types', JSON.stringify(existing))
 
+        // Notify user in chat
         setMessages(prev => [...prev, {
           role: 'assistant',
-          content: `✅ Saved! "${eventType.name}" has been created and added to your Dashboard. Go check it out!`,
+          content: `✅ Saved! I've created the "${eventTypeName}" event type and updated your availability.`,
           time: Date.now()
         }])
+        
       } else if (action.type === 'block_date') {
         const { date, reason } = action.data
-        const { availabilityAPI } = await import('../lib/api')
         await availabilityAPI.blockDate({ date, reason: reason || '' })
 
         setMessages(prev => [...prev, {
@@ -129,7 +128,7 @@ export default function ChatBot({ mode = 'guest', context = {} }) {
       console.error('Action execution failed:', err)
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: 'Hmm, something went wrong while executing that. Please try doing it manually from the Availability page.',
+        content: 'I had some trouble saving that. Could you try doing it manually from the settings?',
         time: Date.now()
       }])
     }
@@ -148,16 +147,16 @@ export default function ChatBot({ mode = 'guest', context = {} }) {
       const history = [...messages, userMsg].map(m => ({ role: m.role, content: m.content }))
       const res = await chatAPI.send(history, mode, context)
       const reply = res.data.reply || 'Sorry, I had trouble with that. Please try again!'
+      
       setMessages(prev => [...prev, { role: 'assistant', content: reply, time: Date.now() }])
 
-      // Execute any action the AI returned
       if (res.data.action) {
         await executeAction(res.data.action)
       }
     } catch {
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: 'Sorry, something went wrong. Please try again!',
+        content: 'Sorry, something went wrong. Please check your connection.',
         time: Date.now()
       }])
     }
@@ -209,7 +208,7 @@ export default function ChatBot({ mode = 'guest', context = {} }) {
           </div>
 
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-5 space-y-4">
+          <div className="flex-1 overflow-y-auto p-5 space-y-4 custom-scrollbar">
             {messages.map((msg, i) => <ChatMessage key={i} msg={msg} />)}
             {typing && <TypingIndicator />}
             <div ref={bottomRef} />
@@ -252,7 +251,7 @@ export default function ChatBot({ mode = 'guest', context = {} }) {
                 <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>send</span>
               </button>
             </div>
-            <p className="text-[10px] text-on-surface-variant/30 text-center mt-2 font-mono">SECURE · POWERED BY GROQ LLAMA3</p>
+            <p className="text-[10px] text-on-surface-variant/30 text-center mt-2 font-mono uppercase">Secure · AI Assistant</p>
           </div>
         </div>
       )}

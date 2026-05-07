@@ -130,6 +130,15 @@ export const bookingsAPI = {
     } catch (error) {
       return Promise.reject(error);
     }
+  },
+  
+  delete: async (id) => {
+    try {
+      const response = await apiClient.delete(`/bookings/${id}`);
+      return { data: response.data };
+    } catch (error) {
+      return Promise.reject(error);
+    }
   }
 }
 

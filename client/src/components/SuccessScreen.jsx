@@ -1,6 +1,23 @@
+import { useEffect } from 'react'
 import { format } from 'date-fns'
 
 export default function SuccessScreen({ booking, host }) {
+  useEffect(() => {
+    // Load confetti from CDN
+    const script = document.createElement('script')
+    script.src = 'https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js'
+    script.onload = () => {
+      window.confetti({
+        particleCount: 150,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ['#0069ff', '#00D4C8', '#8b5cf6']
+      })
+    }
+    document.body.appendChild(script)
+    return () => document.body.removeChild(script)
+  }, [])
+
   const copyMeetLink = () => {
     if (booking.meet_link) navigator.clipboard.writeText(booking.meet_link)
   }
@@ -35,9 +52,17 @@ export default function SuccessScreen({ booking, host }) {
               <div>
                 <p className="text-xs text-on-surface-variant uppercase tracking-wider font-semibold">Date</p>
                 <p className="font-bold text-on-surface">
-                  {booking.slot_date
-                    ? format(new Date(booking.slot_date + 'T00:00:00'), 'EEEE, MMMM d, yyyy')
-                    : '—'}
+                  {(() => {
+                    if (!booking.slot_date) return '—'
+                    try {
+                      // If it's already an ISO string (from backend), new Date() handles it.
+                      // If it's just YYYY-MM-DD, new Date() also handles it.
+                      const date = new Date(booking.slot_date)
+                      return format(date, 'EEEE, MMMM d, yyyy')
+                    } catch (e) {
+                      return '—'
+                    }
+                  })()}
                 </p>
               </div>
             </div>

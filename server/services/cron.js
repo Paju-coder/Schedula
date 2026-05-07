@@ -1,6 +1,6 @@
 const cron = require('node-cron');
 const Booking = require('../models/Booking');
-const { sendWhatsAppNotification } = require('./whatsapp');
+const { sendWhatsAppNotification } = require('./twilio');
 
 /**
  * Start the cron scheduler to send meeting reminders exactly at the meeting time.
@@ -28,15 +28,15 @@ function startCronScheduler() {
 
       if (todaysBookings.length > 0) {
         for (const booking of todaysBookings) {
-          // 3. Check if the meeting is within the next 15 minutes
+          // 3. Check if the meeting is within the next 5 minutes
           const [bHours, bMinutes] = booking.slot_time.split(':').map(Number);
           const bookingTimeInMins = bHours * 60 + bMinutes;
           const currentTimeInMins = now.getHours() * 60 + now.getMinutes();
           
           const minutesUntilMeeting = bookingTimeInMins - currentTimeInMins;
 
-          // If the meeting is happening within the next 15 minutes, SEND IT!
-          if (minutesUntilMeeting >= 0 && minutesUntilMeeting <= 15) {
+          // If the meeting is happening within the next 5 minutes, SEND IT!
+          if (minutesUntilMeeting >= 0 && minutesUntilMeeting <= 5) {
             console.log(`[CRON] Meeting found in ${minutesUntilMeeting} mins. Sending automated reminders!`);
             
             booking.reminder_sent = true;
@@ -59,19 +59,19 @@ function startCronScheduler() {
           // 1. Send to Client/Guest
           if (booking.guest_phone) {
             console.log(`[CRON] Sending Client WhatsApp reminder to ${booking.guest_phone}`);
-            sendWhatsAppNotification(booking.guest_phone, clientData).catch(err => {
+            sendWhatsAppNotification(booking.guest_phone, clientData, 'reminder').catch(err => {
               console.error(`[CRON] Failed to send Client WhatsApp:`, err.message);
             });
           }
 
           // 2. Send to Admin/Host
-          // We use the host's phone from DB, or fallback to your hardcoded number for the presentation
-          const adminPhone = booking.host_id.phone || '+917498453394';
+          // We use the host's phone from DB, or fallback to the ADMIN_PHONE_NUMBER from .env
+          const adminPhone = booking.host_id.phone || process.env.ADMIN_PHONE_NUMBER || '+917498453394';
           console.log(`[CRON] Sending Admin WhatsApp reminder to ${adminPhone}`);
-          sendWhatsAppNotification(adminPhone, adminData).catch(err => {
+          sendWhatsAppNotification(adminPhone, adminData, 'reminder').catch(err => {
             console.error(`[CRON] Failed to send Admin WhatsApp:`, err.message);
           });
-        } // closes if(minutesUntilMeeting <= 15)
+        } // closes if(minutesUntilMeeting <= 5)
         } // closes for loop
       } // closes if(todaysBookings.length > 0)
     } catch (error) {

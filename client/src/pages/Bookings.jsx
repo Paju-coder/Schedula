@@ -36,6 +36,17 @@ export default function Bookings({ session, setSession }) {
     }
   }
 
+  const handleDelete = async (id) => {
+    if (!confirm('Are you sure you want to delete this booking permanently?')) return
+    try {
+      await bookingsAPI.delete(id)
+      setBookings(prev => prev.filter(b => b._id !== id))
+    } catch (err) {
+      console.error('Failed to delete:', err)
+      alert('Failed to delete booking.')
+    }
+  }
+
   // Filter bookings
   const now = new Date()
   
@@ -143,6 +154,12 @@ export default function Bookings({ session, setSession }) {
                           <span className="material-symbols-outlined text-[16px]">cancel</span> Cancel
                         </button>
                       )}
+                      <button 
+                        onClick={() => handleDelete(booking._id)}
+                        className="border border-outline-variant/30 text-on-surface-variant hover:text-error hover:bg-error/10 text-xs py-1.5 px-3 rounded-full font-bold flex items-center gap-1.5 transition-colors flex-1 justify-center sm:flex-none"
+                      >
+                        <span className="material-symbols-outlined text-[16px]">delete</span> Delete
+                      </button>
                     </div>
                   </div>
                 </div>

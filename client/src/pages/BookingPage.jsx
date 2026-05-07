@@ -19,6 +19,7 @@ export default function BookingPage() {
   const [selectedDate, setSelectedDate] = useState(null)
   const [slots, setSlots] = useState([])
   const [selectedSlot, setSelectedSlot] = useState(null)
+  const [meetingType, setMeetingType] = useState('Google Meet')
   const [form, setForm] = useState({ name: '', email: '', phone: '', purpose: '' })
   const [loading, setLoading] = useState(true)
   const [slotsLoading, setSlotsLoading] = useState(false)
@@ -81,6 +82,7 @@ export default function BookingPage() {
         purpose: form.purpose,
         slot_date: format(selectedDate, 'yyyy-MM-dd'),
         slot_time: selectedSlot,
+        meeting_type: meetingType,
       })
       setBooking(res.data.booking)
     } catch (err) {
@@ -222,6 +224,32 @@ export default function BookingPage() {
                     onChange={e => setForm({ ...form, phone: e.target.value })}
                   />
                 </div>
+
+                <div className="space-y-2.5 pt-2">
+                  <label className="text-sm font-semibold text-on-surface">Choose Meeting Platform</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { id: 'Google Meet', icon: 'videocam' },
+                      { id: 'Zoom', icon: 'video_chat' },
+                      { id: 'Phone call', icon: 'call' }
+                    ].map(type => (
+                      <button
+                        key={type.id}
+                        type="button"
+                        onClick={() => setMeetingType(type.id)}
+                        className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all ${
+                          meetingType === type.id 
+                            ? 'border-secondary bg-secondary/5 text-secondary' 
+                            : 'border-outline-variant/20 text-on-surface-variant hover:border-outline-variant/50'
+                        }`}
+                      >
+                        <span className="material-symbols-outlined text-[20px]">{type.icon}</span>
+                        <span className="text-[10px] font-bold uppercase tracking-tighter">{type.id}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 <button
                   id="confirm-booking"
                   type="submit"

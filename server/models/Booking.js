@@ -9,6 +9,7 @@ const bookingSchema = new mongoose.Schema({
   slot_date: { type: Date, required: true },
   slot_time: { type: String, required: true },
   meet_link: { type: String },
+  meeting_type: { type: String, enum: ['Google Meet', 'Zoom', 'Phone call', 'In-person'], default: 'Google Meet' },
   status: { type: String, enum: ['confirmed', 'cancelled', 'rescheduled', 'completed'], default: 'confirmed' },
   reminder_sent: { type: Boolean, default: false }
 }, { timestamps: true })
