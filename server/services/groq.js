@@ -31,7 +31,7 @@ Keep it snappy. No bullet points.`
 
   try {
     const response = await groq.chat.completions.create({
-      model: 'llama-3.3-70b-versatile', // This is the most reliable model on Groq currently
+      model: 'qwen-2.5-coder-32b', 
       messages: [
         { role: 'system', content: systemPrompt },
         ...messages

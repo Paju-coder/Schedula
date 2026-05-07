@@ -26,6 +26,7 @@ export default function BookingPage() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [booking, setBooking] = useState(null) // success state
+  const [branding, setBranding] = useState(null)
 
   // Load host info
   useEffect(() => {
@@ -33,6 +34,11 @@ export default function BookingPage() {
       try {
         const res = await availabilityAPI.getSlots(slug, format(new Date(), 'yyyy-MM-dd'))
         setHostInfo(res.data.host)
+        // Load branding for this host
+        if (res.data.host?.id) {
+          const brandingData = JSON.parse(localStorage.getItem(`schedula_branding_${res.data.host.id}`) || '{}')
+          if (brandingData.accentColor) setBranding(brandingData)
+        }
       } catch (err) {
         setError('This booking page does not exist.')
       }
@@ -125,11 +131,17 @@ export default function BookingPage() {
         
         {/* Left: Host Info (Hidden on mobile when form is open to save space) */}
         <aside className={`p-8 md:w-[35%] border-b md:border-b-0 md:border-r border-outline-variant/20 flex flex-col items-start bg-white z-10 ${selectedSlot ? 'hidden md:flex' : 'flex'}`}>
-          <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center text-white text-xl font-black mb-4 shadow-sm">
+          <div
+            className="w-16 h-16 rounded-full flex items-center justify-center text-white text-xl font-black mb-4 shadow-sm"
+            style={{ background: branding?.accentColor || '#0051cc' }}
+          >
             {initials(hostInfo?.name)}
           </div>
           <p className="text-sm font-bold text-on-surface-variant uppercase tracking-widest mb-1">{hostInfo?.name}</p>
-          <h1 className="text-2xl font-black text-on-surface tracking-tight mb-4">Discovery Call</h1>
+          <h1 className="text-2xl font-black text-on-surface tracking-tight mb-2">Discovery Call</h1>
+          {branding?.welcomeMsg && (
+            <p className="text-sm text-on-surface-variant mb-2">{branding.welcomeMsg}</p>
+          )}
           
           <div className="flex flex-col gap-3 w-full mt-2">
             <div className="flex items-center gap-3 text-sm text-on-surface-variant font-medium">
@@ -148,14 +160,40 @@ export default function BookingPage() {
                     {(() => {
                       const [h, m] = selectedSlot.split(':')
                       const hour = parseInt(h, 10)
-                      return `${hour % 12 || 12}:${m}${hour >= 12 ? 'pm' : 'am'}`
-                    })()} (IST)
+                      const istTime = `${hour % 12 || 12}:${m}${hour >= 12 ? 'pm' : 'am'}`
+                      
+                      // Smart timezone conversion
+                      const guestTz = Intl.DateTimeFormat().resolvedOptions().timeZone
+                      const isIST = guestTz === 'Asia/Kolkata' || guestTz === 'Asia/Calcutta'
+                      
+                      if (isIST) return `${istTime} (IST)`
+                      
+                      // Convert IST to guest's timezone
+                      try {
+                        const dateStr = format(selectedDate, 'yyyy-MM-dd')
+                        const istDate = new Date(`${dateStr}T${selectedSlot}:00+05:30`) // IST is UTC+5:30
+                        const guestTime = istDate.toLocaleTimeString('en-US', { 
+                          hour: 'numeric', minute: '2-digit', hour12: true, timeZone: guestTz 
+                        })
+                        const tzAbbr = guestTz.split('/').pop().replace(/_/g, ' ')
+                        return `${istTime} IST → ${guestTime} (${tzAbbr})`
+                      } catch {
+                        return `${istTime} (IST)`
+                      }
+                    })()}
                  </span>
                </div>
             )}
             <div className="flex items-center gap-3 text-sm text-on-surface-variant font-medium mt-4">
               <span className="material-symbols-outlined text-xl">public</span>
-              Indian Standard Time
+              {(() => {
+                const guestTz = Intl.DateTimeFormat().resolvedOptions().timeZone
+                const isIST = guestTz === 'Asia/Kolkata' || guestTz === 'Asia/Calcutta'
+                const tzLabel = guestTz.split('/').pop().replace(/_/g, ' ')
+                return isIST
+                  ? 'Indian Standard Time'
+                  : `Your timezone: ${tzLabel} · Host: IST`
+              })()}
             </div>
           </div>
           
@@ -292,6 +330,7 @@ export default function BookingPage() {
                       const isDisabled = isBefore(startOfDay(day), startOfDay(new Date())) || !isSameMonth(day, currentMonth)
                       const isSelected = selectedDate && format(day, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd')
                       const today = isToday(day)
+                      const accentCol = branding?.accentColor || undefined
 
                       return (
                         <button
@@ -300,13 +339,14 @@ export default function BookingPage() {
                           onClick={() => !isDisabled && setSelectedDate(day)}
                           className={`w-10 h-10 mx-auto flex items-center justify-center rounded-full text-sm font-medium transition-all ${
                             isSelected 
-                              ? 'bg-secondary text-white font-bold shadow-md transform scale-105' 
+                              ? 'text-white font-bold shadow-md transform scale-105' 
                               : isDisabled 
                                 ? 'text-on-surface-variant/30 cursor-not-allowed' 
                                 : today 
-                                  ? 'text-secondary font-bold bg-secondary/10 hover:bg-secondary/20' 
+                                  ? 'font-bold hover:bg-secondary/20' 
                                   : 'text-primary hover:bg-surface-container-low'
                           }`}
+                          style={isSelected ? { background: accentCol || '#0051cc' } : today ? { color: accentCol || '#0051cc', background: `${accentCol || '#0051cc'}15` } : {}}
                         >
                           {format(day, 'd')}
                         </button>

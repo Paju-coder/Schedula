@@ -9,6 +9,7 @@ import Availability from './pages/Availability'
 import BookingPage from './pages/BookingPage'
 import EventSetup from './pages/EventSetup'
 import Bookings from './pages/Bookings'
+import Analytics from './pages/Analytics'
 import Settings from './pages/Settings'
 import './index.css'
 
@@ -24,11 +25,13 @@ export default function App() {
   useEffect(() => {
     const checkAuth = async () => {
       const token = localStorage.getItem('token')
+      
       if (!token) {
-        setSession(null)
-        setLoading(false)
-        return
+        setSession(null);
+        setLoading(false);
+        return;
       }
+
       try {
         const { data } = await authAPI.me()
         setSession({ user: data.user, access_token: token })
@@ -101,6 +104,14 @@ export default function App() {
           element={
             <ProtectedRoute session={session}>
               <Bookings session={session} setSession={handleSetSession} />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/analytics"
+          element={
+            <ProtectedRoute session={session}>
+              <Analytics session={session} setSession={handleSetSession} />
             </ProtectedRoute>
           }
         />

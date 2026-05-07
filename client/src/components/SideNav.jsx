@@ -4,6 +4,7 @@ const navItems = [
   { id: 'dashboard', label: 'Dashboard', icon: 'dashboard', path: '/dashboard' },
   { id: 'availability', label: 'Availability', icon: 'schedule', path: '/availability' },
   { id: 'bookings', label: 'Bookings', icon: 'event_available', path: '/bookings' },
+  { id: 'analytics', label: 'Analytics', icon: 'analytics', path: '/analytics' },
   { id: 'settings', label: 'Settings', icon: 'settings', path: '/settings' },
 ]
 

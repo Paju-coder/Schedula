@@ -59,10 +59,9 @@ router.post('/login', async (req, res) => {
 
   try {
     const user = await User.findOne({ email })
-
+    
     if (user && (await user.matchPassword(password))) {
       const token = generateToken(user._id)
-
       return res.json({
         session: { access_token: token },
         user: { id: user._id, name: user.name, email: user.email, slug: user.slug }

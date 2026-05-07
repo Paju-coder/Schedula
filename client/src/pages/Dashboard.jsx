@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { bookingsAPI } from '../lib/api'
+import { bookingsAPI, notificationsAPI } from '../lib/api'
 import SideNav from '../components/SideNav'
 import ChatBot from '../components/ChatBot'
+import MeetingPrepCard from '../components/MeetingPrepCard'
+import FollowUpCard from '../components/FollowUpCard'
 
 const DEFAULT_EVENT = {
   id: 'default',
@@ -82,9 +84,6 @@ export default function Dashboard({ session, setSession }) {
 
   const copyLink = () => {
     let origin = window.location.origin
-    if (origin.includes('localhost')) {
-      origin = origin.replace('localhost', '10.85.163.205')
-    }
     const link = `${origin}/${userSlug}`
     navigator.clipboard.writeText(link)
     setCopied(true)
@@ -118,24 +117,40 @@ export default function Dashboard({ session, setSession }) {
               </h1>
               <div className="flex items-center gap-3">
                 <button
+                  onClick={() => {
+                    const userId = session?.user?.id;
+                    const now = new Date();
+                    const mockBookings = [
+                      { _id: 'demo1', id: 'demo1', host_id: userId, guest_name: 'Alex Rivera', guest_email: 'alex@example.com', slot_date: now.toISOString().split('T')[0], slot_time: '14:00', meeting_type: 'Google Meet', status: 'confirmed', meet_link: 'https://meet.google.com/abc-defg-hij', createdAt: now.toISOString() },
+                      { _id: 'demo2', id: 'demo2', host_id: userId, guest_name: 'Sarah Chen', guest_email: 'sarah@tech.com', slot_date: new Date(Date.now() + 86400000).toISOString().split('T')[0], slot_time: '10:30', meeting_type: 'Zoom', status: 'confirmed', meet_link: 'https://meet.google.com/xyz-abcd-efg', createdAt: new Date(Date.now() - 3600000).toISOString() },
+                      { _id: 'demo3', id: 'demo3', host_id: userId, guest_name: 'Michael Scott', guest_email: 'michael@dundermifflin.com', slot_date: new Date(Date.now() + 172800000).toISOString().split('T')[0], slot_time: '11:00', meeting_type: 'Phone call', status: 'confirmed', meet_link: 'https://meet.google.com/lmn-opqr-stu', createdAt: new Date(Date.now() - 7200000).toISOString() }
+                    ];
+                    // Save to localStorage
+                    const existing = JSON.parse(localStorage.getItem('schedula_bookings') || '[]');
+                    const merged = [...existing.filter(b => !b._id?.startsWith('demo')), ...mockBookings];
+                    localStorage.setItem('schedula_bookings', JSON.stringify(merged));
+                    setRecentBookings(mockBookings);
+                  }}
+                  className="bg-secondary/10 hover:bg-secondary/20 text-secondary px-4 py-2.5 rounded-full font-bold text-xs transition-colors border border-secondary/20"
+                >
+                  Seed Demo
+                </button>
+                <button
                   onClick={async () => {
                     try {
-                      await fetch('http://localhost:5000/api/notifications/whatsapp', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                          phone: '+917498453394',
-                          data: {
-                            guest_name: '(DEMO) Test User',
-                            slot_date: new Date().toISOString().split('T')[0],
-                            slot_time: 'Now',
-                            meet_link: 'meet.google.com/demo'
-                          }
-                        })
+                      const result = await notificationsAPI.sendWhatsApp('+917498453394', {
+                        guest_name: '(DEMO) Test User',
+                        slot_date: new Date().toISOString().split('T')[0],
+                        slot_time: 'Now',
+                        meet_link: 'https://meet.google.com/demo-test'
                       });
-                      alert('✅ Test WhatsApp sent!');
+                      if (result.skipped) {
+                        alert('⚠️ WhatsApp not configured. Add Twilio credentials to server .env');
+                      } else {
+                        alert('✅ Test WhatsApp sent!');
+                      }
                     } catch (err) {
-                      alert('Error sending test.');
+                      alert('❌ Server offline. Start the server with: cd server && npm start');
                     }
                   }}
                   className="bg-green-600 hover:bg-green-700 text-white px-5 py-2.5 rounded-full font-semibold text-sm flex items-center gap-2 transition-colors"
@@ -201,6 +216,14 @@ export default function Dashboard({ session, setSession }) {
                             >
                               <span className="material-symbols-outlined text-[18px]">delete</span>
                             </button>
+                          </div>
+                          {/* AI Meeting Prep */}
+                          <div className="px-4 pb-2">
+                            <MeetingPrepCard booking={b} />
+                          </div>
+                          {/* AI Follow-up (for past bookings) */}
+                          <div className="px-4 pb-3">
+                            <FollowUpCard booking={b} />
                           </div>
                         </div>
                       )

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { chatAPI, availabilityAPI } from '../lib/api'
+import { chatAPI, availabilityAPI, bookingsAPI } from '../lib/api'
 
 function ChatMessage({ msg }) {
   const isUser = msg.role === 'user'
@@ -29,29 +29,32 @@ function TypingIndicator() {
   )
 }
 
-const INITIAL_MESSAGE = {
-  role: 'assistant',
-  content: "Hi! I'm Schedula AI. How can I help you today? 😊",
-  time: Date.now(),
-}
-
 export default function ChatBot({ mode = 'guest', context = {} }) {
+  console.log('🤖 ChatBot mounting in mode:', mode);
   const [open, setOpen] = useState(false)
-  const [messages, setMessages] = useState([INITIAL_MESSAGE])
+  const [messages, setMessages] = useState([{
+    role: 'assistant',
+    content: "Hi! I'm Schedula AI. How can I help you today? 😊",
+    time: Date.now(),
+  }])
   const [input, setInput] = useState('')
   const [typing, setTyping] = useState(false)
   const bottomRef = useRef(null)
   const inputRef = useRef(null)
 
   useEffect(() => {
+    console.log('🤖 ChatBot open state:', open);
+    if (open) {
+      setTimeout(() => inputRef.current?.focus(), 100);
+    }
+  }, [open])
+
+  useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, typing])
 
-  useEffect(() => {
-    if (open) inputRef.current?.focus()
-  }, [open])
-
   const executeAction = async (action) => {
+    console.log('🤖 Executing action:', action.type);
     if (!action) return
 
     try {
@@ -123,6 +126,29 @@ export default function ChatBot({ mode = 'guest', context = {} }) {
           content: `✅ Done! ${date} has been blocked on your calendar.`,
           time: Date.now()
         }])
+
+      } else if (action.type === 'cancel_booking') {
+        const { booking_id, guest_name } = action.data
+        if (booking_id) {
+          await bookingsAPI.cancel(booking_id)
+          setMessages(prev => [...prev, {
+            role: 'assistant',
+            content: `✅ Booking with ${guest_name || 'guest'} has been cancelled.`,
+            time: Date.now()
+          }])
+        }
+
+      } else if (action.type === 'reschedule_booking') {
+        const { booking_id, guest_name, new_date, new_time } = action.data
+        if (booking_id) {
+          // Cancel old booking
+          await bookingsAPI.cancel(booking_id)
+          setMessages(prev => [...prev, {
+            role: 'assistant',
+            content: `✅ Rescheduled! The old booking with ${guest_name || 'guest'} has been cancelled. They'll need to rebook at the new time (${new_date} at ${new_time}).`,
+            time: Date.now()
+          }])
+        }
       }
     } catch (err) {
       console.error('Action execution failed:', err)
@@ -134,10 +160,11 @@ export default function ChatBot({ mode = 'guest', context = {} }) {
     }
   }
 
-  const sendMessage = async () => {
-    const text = input.trim()
+  const sendMessage = async (overrideText) => {
+    const text = typeof overrideText === 'string' ? overrideText.trim() : input.trim()
     if (!text || typing) return
-    setInput('')
+    
+    if (!overrideText) setInput('')
 
     const userMsg = { role: 'user', content: text, time: Date.now() }
     setMessages(prev => [...prev, userMsg])
@@ -145,7 +172,23 @@ export default function ChatBot({ mode = 'guest', context = {} }) {
 
     try {
       const history = [...messages, userMsg].map(m => ({ role: m.role, content: m.content }))
-      const res = await chatAPI.send(history, mode, context)
+      
+      // Inject booking context for admin mode (for reschedule/cancel actions)
+      let enrichedContext = { ...context }
+      if (mode === 'admin') {
+        const allBookings = JSON.parse(localStorage.getItem('schedula_bookings') || '[]')
+        const userId = JSON.parse(atob(localStorage.getItem('token') || 'e30='))?.id
+        const myBookings = allBookings
+          .filter(b => b.host_id === userId && b.status !== 'cancelled')
+          .slice(0, 10)
+        if (myBookings.length > 0) {
+          enrichedContext.bookings = myBookings.map(b => 
+            `- ID:${b._id} | ${b.guest_name} | ${b.slot_date} at ${b.slot_time} | ${b.meeting_type || 'Meet'}`
+          ).join('\n')
+        }
+      }
+      
+      const res = await chatAPI.send(history, mode, enrichedContext)
       const reply = res.data.reply || 'Sorry, I had trouble with that. Please try again!'
       
       setMessages(prev => [...prev, { role: 'assistant', content: reply, time: Date.now() }])
@@ -172,7 +215,7 @@ export default function ChatBot({ mode = 'guest', context = {} }) {
 
   const quickReplies = mode === 'guest'
     ? ['Show available slots', 'How do I book?', 'Cancel my booking']
-    : ["Today's bookings", 'Block a date', 'Show stats']
+    : ["Today's bookings", 'Block a date', 'Reschedule a meeting', 'Show stats']
 
   return (
     <>
@@ -180,7 +223,7 @@ export default function ChatBot({ mode = 'guest', context = {} }) {
       {open && (
         <div
           id="chatbot-window"
-          className="fixed bottom-24 right-6 z-[100] w-[340px] h-[480px] flex flex-col bg-white rounded-2xl shadow-float overflow-hidden border border-outline-variant/20 animate-slide-up"
+          className="fixed bottom-24 right-6 z-[9999] w-[340px] h-[480px] flex flex-col bg-white rounded-2xl shadow-float overflow-hidden border border-outline-variant/20 animate-slide-up"
         >
           {/* Header */}
           <div className="px-5 py-4 flex justify-between items-center bg-primary flex-shrink-0">
@@ -220,7 +263,7 @@ export default function ChatBot({ mode = 'guest', context = {} }) {
               {quickReplies.map(q => (
                 <button
                   key={q}
-                  onClick={() => { setInput(q); setTimeout(sendMessage, 50) }}
+                  onClick={() => sendMessage(q)}
                   className="text-xs border border-outline-variant text-on-surface-variant rounded-full px-3 py-1.5 hover:border-secondary hover:text-secondary transition-colors whitespace-nowrap"
                 >
                   {q}
@@ -260,7 +303,7 @@ export default function ChatBot({ mode = 'guest', context = {} }) {
       <button
         id="chatbot-toggle"
         onClick={() => setOpen(!open)}
-        className="fixed bottom-6 right-6 z-[99] w-14 h-14 bg-primary text-on-primary rounded-full flex items-center justify-center shadow-float hover:scale-110 active:scale-90 transition-all group"
+        className="fixed bottom-6 right-6 z-[9998] w-14 h-14 bg-primary text-on-primary rounded-full flex items-center justify-center shadow-float hover:scale-110 active:scale-90 transition-all group"
       >
         {open ? (
           <span className="material-symbols-outlined text-2xl">close</span>

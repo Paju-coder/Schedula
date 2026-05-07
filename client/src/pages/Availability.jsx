@@ -105,9 +105,6 @@ export default function Availability({ session, setSession }) {
   }
 
   let origin = window.location.origin
-  if (origin.includes('localhost')) {
-    origin = origin.replace('localhost', '10.85.163.205')
-  }
   const bookingLink = `${origin}/${userSlug}`
 
   const copyLink = () => {
